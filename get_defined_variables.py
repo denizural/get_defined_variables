@@ -15,7 +15,10 @@ import os
 parser = argparse.ArgumentParser(description='command-line argument parser')
 parser.add_argument('script_path', type=str, \
     help='shell script to be parsed')
+parser.add_argument("--verbose", help="increase output verbosity",\
+    action="store_true")
 args = parser.parse_args()
+
 
 if not os.path.isfile(args.script_path):
     print(f"ERROR: file: {args.script_path} does not exist")
@@ -46,9 +49,17 @@ def extract_var_name(line, verbose=False):
     var_count = line.count('$')
     brace_count = line.count('{')
     variables = list()
+    non_alnum = r"[^0-9a-zA-Z_]"   # regex for non-alphanumerics
     
     # starting positions of the $ sign
     starts = [m.start() for m in re.finditer('\$', line)]
+
+    # check if we are on a commented line. If '#' is encountered before the 
+    # first occurence of '$' then ignore this line
+    if '#' in line[:starts[0]]:
+        #print('commented line')
+        #print(f'>>> {line}')
+        return None 
     
     # go for each variable and check their format and extract them
     # possible candidates:
@@ -64,9 +75,15 @@ def extract_var_name(line, verbose=False):
         # 2) check for $var
         elif line[starts[i]+1].isalpha():
             var_start = starts[i]+1
-            var_end = line.find(' ', var_start)    
-            if var_end == -1:
-                var_end = len(line)-1
+            # search a first non-alphanumeric character from current position
+            # to the end of the line. This is the end of the variable name
+            match = re.search(non_alnum, line[var_start : ])
+            var_end = var_start + match.start()
+
+            #var_end = line.find(' ', var_start)
+            # if there is no space, eg. end of the line
+            #if var_end == -1:
+            #    var_end = len(line)-1
 
         # check for function arguments: $numeric, eg. $1, $2
         elif line[starts[i]+1].isnumeric():
@@ -88,10 +105,13 @@ def extract_var_name(line, verbose=False):
             #print(f"debug: some other strange character after $ is found: {line[starts[i]+1]}")
             continue
             
+        # extract the variable from the line
         var = line[var_start : var_end]
-        variables.append(var)
         
-    if verbose:
+        variables.append(var)
+
+        
+    if verbose == True:
         print(f"::: found {var_count} variables on the line")
         if line[-1] == '\n':
             print(f"{line}", end='')
@@ -125,25 +145,21 @@ with open(args.script_path) as script:
         if match_1 != None or match_2 != None:
             
             # extract variable names
-            vars_cur_line = extract_var_name(line, verbose=True)
-            vars_list.extend(vars_cur_line)
+            vars_cur_line = extract_var_name(line, verbose=args.verbose)
+            if vars_cur_line is not None:
+                vars_list.extend(vars_cur_line)
 
-    print(vars_list)
-    print(len(vars_list))
-    print(set(vars_list))    # breaks the order unfortunately
-    print(len(set(vars_list)))
+    #print(vars_list)
+    #print(len(vars_list))
+    #print(set(vars_list))    # breaks the order unfortunately
+    #print(len(set(vars_list)))
     
-    for var in set(vars_list):
-        print(var)
+    #for var in set(vars_list):
+    #    print(var)
 
     # remove the duplicates while still preserving the order in the list
     vars_list_no_duplicate = sorted(set(vars_list), key=lambda x: vars_list.index(x))
-    print('\n\nlist of variables:')
+    #print('\n\nlist of variables:')
     for var in vars_list_no_duplicate:
         print(var)
-
-
-# ^[a-zA-Z0-9_]*
-# ^[a-zA-Z0-9_]+
-# \$[a-zA-Z0-9_]+
 
