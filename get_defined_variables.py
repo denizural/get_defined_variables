@@ -62,11 +62,23 @@ def extract_var_name(line, verbose=False):
             var_end = line.find('}', var_start)  
         
         # 2) check for $var
-        elif line[starts[i]+1].isalnum():
+        elif line[starts[i]+1].isalpha():
             var_start = starts[i]+1
             var_end = line.find(' ', var_start)    
             if var_end == -1:
                 var_end = len(line)-1
+
+        # check for function arguments: $numeric, eg. $1, $2
+        elif line[starts[i]+1].isnumeric():
+            print("debug: numeric found")
+            #del starts[i]
+            continue
+        
+        # check for $(...) -> shell commands
+        elif line[starts[i]+1] == '(':
+            print("debug: ( found")
+            #del starts[i]
+            continue
             
         var = line[var_start : var_end]
         variables.append(var)
