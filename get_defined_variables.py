@@ -70,14 +70,22 @@ def extract_var_name(line, verbose=False):
 
         # check for function arguments: $numeric, eg. $1, $2
         elif line[starts[i]+1].isnumeric():
-            print("debug: numeric found")
-            #del starts[i]
+            #print("debug: numeric found")
             continue
         
         # check for $(...) -> shell commands
         elif line[starts[i]+1] == '(':
-            print("debug: ( found")
-            #del starts[i]
+            #print("debug: ( found")
+            continue
+
+        # space after $
+        elif line[starts[i]+1] == ' ':
+            #print("debug: space found after $")
+            continue
+
+        # some other strange non-alphanumeric character is found
+        elif (line[starts[i]+1]).isalnum() == False:
+            #print(f"debug: some other strange character after $ is found: {line[starts[i]+1]}")
             continue
             
         var = line[var_start : var_end]
